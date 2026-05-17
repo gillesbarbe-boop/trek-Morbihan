@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Trek Golfe du Morbihan</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --j1:#1D9E75;--j2:#378ADD;--j3:#7F77DD;--j4:#BA7517;
+  --hotel:#c0392b;--bac:#2980b9;
+  --bg:#f5f0e8;--ink:#1a1a2e;--muted:#6b7280;--card:#fff;--r:12px;
+}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--ink);}
+.app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;}
+.hdr{background:var(--ink);color:#fff;padding:12px 16px 10px;padding-top:max(14px,env(safe-area-inset-top));flex-shrink:0;z-index:10;}
+.hdr h1{font-size:17px;font-weight:700;letter-spacing:.01em;}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.45);margin-top:1px;}
+.hdr-stats{display:flex;gap:18px;margin-top:7px;}
+.sv{font-size:15px;font-weight:600;}
+.sl{font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.07em;}
+#mapwrap{flex:1;min-height:0;position:relative;overflow:hidden;background:#d4e8f0;cursor:grab;}
+#mapwrap.grabbing{cursor:grabbing;}
+#maptiles{position:absolute;top:0;left:0;width:100%;height:100%;}
+#mapsvg{position:absolute;top:0;left:0;pointer-events:none;}
+.popup{position:absolute;background:#fff;border-radius:10px;padding:8px 12px;box-shadow:0 4px 20px rgba(0,0,0,.2);font-size:12px;line-height:1.5;max-width:200px;display:none;z-index:20;pointer-events:none;}
+.popup strong{font-size:13px;display:block;margin-bottom:2px;}
+.popup span{color:var(--muted);}
+.sheet{flex-shrink:0;background:var(--bg);border-top:1px solid rgba(0,0,0,.08);display:flex;flex-direction:column;max-height:50vh;z-index:10;}
+.handle{width:36px;height:4px;border-radius:2px;background:rgba(0,0,0,.15);margin:8px auto 4px;flex-shrink:0;}
+.tabs{display:flex;padding:0 12px;flex-shrink:0;border-bottom:1px solid rgba(0,0,0,.06);}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;}
+.tab.on{color:var(--ink);border-bottom-color:var(--ink);}
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));}
+.pane{display:none;flex-direction:column;gap:8px;}
+.pane.on{display:flex;}
+.ec{background:var(--card);border-radius:var(--r);padding:11px 13px;cursor:pointer;border:1.5px solid transparent;display:flex;align-items:center;gap:11px;}
+.ec.on{border-color:currentColor;}
+.ec.j1{color:var(--j1)}.ec.j2{color:var(--j2)}.ec.j3{color:var(--j3)}.ec.j4{color:var(--j4)}
+.ebar{width:4px;border-radius:2px;background:currentColor;align-self:stretch;flex-shrink:0;}
+.eb{flex:1;min-width:0;}
+.etop{display:flex;justify-content:space-between;margin-bottom:2px;}
+.elbl{font-size:10px;font-weight:600;color:currentColor;text-transform:uppercase;letter-spacing:.06em;}
+.edate{font-size:11px;color:var(--muted);}
+.eroute{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.erow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.m{font-size:11px;color:var(--muted);}
+.m b{color:var(--ink);font-weight:600;}
+.hor{font-size:11px;font-weight:600;color:var(--ink);}
+.bbl{font-size:10px;color:var(--bac);font-weight:600;}
+.hc{background:var(--card);border-radius:var(--r);padding:11px 13px;cursor:pointer;border-left:3px solid var(--hotel);}
+.hcn{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--hotel);font-weight:600;margin-bottom:3px;}
+.hcname{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+.hcloc{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;}
+.stars{color:#f59e0b;}
+.bc{background:var(--card);border-radius:var(--r);padding:11px 13px;cursor:pointer;border-left:3px solid var(--bac);}
+.bcn{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--bac);font-weight:600;margin-bottom:3px;}
+.bcname{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+.bcd{font-size:11px;color:var(--muted);line-height:1.5;}
+.rc{background:var(--card);border-radius:var(--r);padding:11px 13px;}
+.rcl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:8px;}
+table{width:100%;font-size:12px;border-collapse:collapse;}
+td{padding:4px 2px;}
+tr+tr td{border-top:1px solid rgba(0,0,0,.05);}
+tr:last-child td{border-top:2px solid rgba(0,0,0,.1);font-weight:600;padding-top:6px;}
+.note{font-size:11px;color:var(--muted);text-align:center;padding:12px 0 4px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="hdr">
+  <h1>Trek Golfe du Morbihan</h1>
+  <div class="hdr-sub">30 mai – 2 juin 2025 · rando-trail</div>
+  <div class="hdr-stats">
+    <div><div class="sv">138 km</div><div class="sl">Distance</div></div>
+    <div><div class="sv">1 237 m</div><div class="sl">Dénivelé +</div></div>
+    <div><div class="sv">4 étapes</div><div class="sl">Trek</div></div>
+  </div>
+</div>
+
+<div id="mapwrap">
+  <canvas id="maptiles"></canvas>
+  <svg id="mapsvg"></svg>
+  <div class="popup" id="popup"><strong id="ptitle"></strong><span id="psub"></span></div>
+  <div id="mapwrap" style="display:none"></div>
+</div>
+
+<div class="sheet">
+  <div class="handle"></div>
+  <div class="tabs">
+    <div class="tab on" onclick="stab('etapes',this)">Étapes</div>
+    <div class="tab" onclick="stab('hebergements',this)">Hébergements</div>
+    <div class="tab" onclick="stab('logistique',this)">Logistique</div>
+  </div>
+  <div class="content">
+    <div class="pane on" id="p-etapes">
+      <div class="ec j1 on" onclick="foc(0)">
+        <div class="ebar"></div><div class="eb">
+          <div class="etop"><span class="elbl">J1</span><span class="edate">30 mai</span></div>
+          <div class="eroute">Vannes → Sarzeau</div>
+          <div class="erow"><span class="m"><b>28,5 km</b></span><span class="m">D+ <b>187 m</b></span><span class="hor">⏱ 11h00 → 15h35</span></div>
+        </div>
+      </div>
+      <div class="ec j2" onclick="foc(1)">
+        <div class="ebar"></div><div class="eb">
+          <div class="etop"><span class="elbl">J2</span><span class="edate">31 mai</span></div>
+          <div class="eroute">Sarzeau → Port-Navalo</div>
+          <div class="erow"><span class="m"><b>39,3 km</b></span><span class="m">D+ <b>321 m</b></span><span class="hor">⏱ 09h30 → 15h52</span></div>
+        </div>
+      </div>
+      <div class="ec j3" onclick="foc(2)">
+        <div class="ebar"></div><div class="eb">
+          <div class="etop"><span class="elbl">J3</span><span class="edate">1er juin</span></div>
+          <div class="eroute">Locmariaquer → Larmor-Baden</div>
+          <div class="erow"><span class="m"><b>40,3 km</b></span><span class="m">D+ <b>400 m</b></span><span class="hor">⏱ 09h30 → 16h00</span><span class="bbl">⛵ bac 09h</span></div>
+        </div>
+      </div>
+      <div class="ec j4" onclick="foc(3)">
+        <div class="ebar"></div><div class="eb">
+          <div class="etop"><span class="elbl">J4</span><span class="edate">2 juin</span></div>
+          <div class="eroute">Larmor-Baden → Vannes</div>
+          <div class="erow"><span class="m"><b>30,2 km</b></span><span class="m">D+ <b>329 m</b></span><span class="hor">⏱ 09h30 → 14h19</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="pane" id="p-hebergements">
+      <div class="hc" onclick="fly(47.534,-2.7805,'Amarré Chambres d\'hôtes','Nuit 1 · Sarzeau · ★ 4.9')">
+        <div class="hcn">Nuit 1 · 30 mai · Sarzeau</div>
+        <div class="hcname">Amarré Chambres d'hôtes</div>
+        <div class="hcloc"><span>Kervocen, Sarzeau</span><span class="stars">★ 4.9</span></div>
+        <div style="margin-top:8px;">
+          <a href="https://gillesbarbe-boop.github.io/trek-Morbihan/hotel%20sarzeau.pdf" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:5px;background:#f0f0f0;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:500;color:#1a1a2e;text-decoration:none;">📄 Voir la confirmation</a>
+        </div>
+      </div>
+      <div class="hc" onclick="fly(47.5488,-2.9051,'Hôtel Glann Ar Mor','Nuit 2 · Port-Navalo · ★ 4.5')">
+        <div class="hcn">Nuit 2 · 31 mai · Port-Navalo</div>
+        <div class="hcname">Hôtel Glann Ar Mor</div>
+        <div class="hcloc"><span>Port-Navalo, Arzon</span><span class="stars">★ 4.5</span></div>
+        <div style="margin-top:8px;">
+          <a href="https://gillesbarbe-boop.github.io/trek-Morbihan/Horl%20Glan%20armor%20port%20navalo.pdf" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:5px;background:#f0f0f0;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:500;color:#1a1a2e;text-decoration:none;">📄 Voir la confirmation</a>
+        </div>
+      </div>
+      <div class="hc" onclick="fly(47.5854,-2.8951,'Hôtel le Parc Fétan','Nuit 3 · Larmor-Baden · ★ 4.7')">
+        <div class="hcn">Nuit 3 · 1er juin · Larmor-Baden</div>
+        <div class="hcname">Hôtel le Parc Fétan</div>
+        <div class="hcloc"><span>Larmor-Baden</span><span class="stars">★ 4.7</span></div>
+        <div style="margin-top:8px;">
+          <a href="https://gillesbarbe-boop.github.io/trek-Morbihan/hotel%20fetan%20larmor%20baden.pdf" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:5px;background:#f0f0f0;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:500;color:#1a1a2e;text-decoration:none;">📄 Voir la confirmation</a>
+        </div>
+      </div>
+    </div>
+    <div class="pane" id="p-logistique">
+      <div class="bc" onclick="fly(47.5488,-2.9051,'Embarcadère Port-Navalo','Bac → Locmariaquer · 09h00 · Le Passeur des Îles')">
+        <div class="bcn">⛵ Traversée bac · J3 · 1er juin</div>
+        <div class="bcname">Port-Navalo → Locmariaquer</div>
+        <div class="bcd">Départ 09h00 · arrivée ~09h25<br>Le Passeur des Îles · <b>réservation obligatoire</b><br>🔗 passeurdesiles.com</div>
+      </div>
+      <div class="bc" style="border-left-color:#e67e22;" onclick="fly(47.5878,-2.7328,'Petit Passeur · J1','Montsarrac ↔ Saint-Armel · à la demande')">
+        <div class="bcn" style="color:#e67e22;">🚩 Petit Passeur · J1 · 30 mai</div>
+        <div class="bcname">Montsarrac ↔ Saint-Armel</div>
+        <div class="bcd">Service actif dès le 1er mai · pas d'horaire fixe<br>Se présenter à la cale · agiter le drapeau rouge<br>📞 06 20 23 62 64<br>Interruption possible par mauvais temps</div>
+      </div>
+      <div class="rc">
+        <div class="rcl">Récap distances</div>
+        <table>
+          <tr style="color:var(--muted);font-size:10px;text-transform:uppercase;">
+            <td>Étape</td><td align="right">km</td><td align="right">D+</td><td align="right">Horaires</td>
+          </tr>
+          <tr><td style="color:var(--j1);font-weight:600;">J1</td><td align="right">28,5</td><td align="right">187m</td><td align="right">11h→15h35</td></tr>
+          <tr><td style="color:var(--j2);font-weight:600;">J2</td><td align="right">39,3</td><td align="right">321m</td><td align="right">09h30→15h52</td></tr>
+          <tr><td style="color:var(--j3);font-weight:600;">J3</td><td align="right">40,3</td><td align="right">400m</td><td align="right">09h30→16h00</td></tr>
+          <tr><td style="color:var(--j4);font-weight:600;">J4</td><td align="right">30,2</td><td align="right">329m</td><td align="right">09h30→14h19</td></tr>
+          <tr><td>Total</td><td align="right">138,3</td><td align="right">1 237m</td><td align="right">22h16</td></tr>
+        </table>
+      </div>
+      <p class="note">Rythme trail estimé à 7 km/h · pauses incluses<br>Bac Port-Navalo ↔ Locmariaquer : <b>passeurdesiles.com</b><br>Petit Passeur J1 : 06 20 23 62 64</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEG=Math.PI/180;
+function lat2y(lat,z){const n=Math.tan((90+lat)*DEG/2);return(1-Math.log(n)/Math.PI)/2*Math.pow(2,z)*256;}
+function lon2x(lon,z){return(lon+180)/360*Math.pow(2,z)*256;}
+function tile2lon(x,z){return x/Math.pow(2,z)*360-180;}
+function tile2lat(y,z){const n=Math.PI-2*Math.PI*y/Math.pow(2,z);return 180/Math.PI*Math.atan(.5*(Math.exp(n)-Math.exp(-n)));}
+
+const j1=[[47.66059,-2.76096],[47.66014,-2.76025],[47.65812,-2.75812],[47.65732,-2.75714],[47.65597,-2.75707],[47.65404,-2.75784],[47.65087,-2.7575],[47.64718,-2.75753],[47.64432,-2.75922],[47.64357,-2.75946],[47.64266,-2.75978],[47.64169,-2.7597],[47.64096,-2.7599],[47.6403,-2.75974],[47.63983,-2.75876],[47.63904,-2.7569],[47.63772,-2.75505],[47.63555,-2.75489],[47.63472,-2.75462],[47.63394,-2.75504],[47.63284,-2.75714],[47.63184,-2.75766],[47.63026,-2.75727],[47.62958,-2.75693],[47.62925,-2.75505],[47.62608,-2.75256],[47.62402,-2.75209],[47.62289,-2.75135],[47.62191,-2.75034],[47.621,-2.74849],[47.62181,-2.74682],[47.62324,-2.74742],[47.62418,-2.7473],[47.62638,-2.74805],[47.62781,-2.74628],[47.62888,-2.74591],[47.63016,-2.74666],[47.6315,-2.74702],[47.63236,-2.74521],[47.6305,-2.74391],[47.62842,-2.74229],[47.62592,-2.74098],[47.62561,-2.74233],[47.62522,-2.74277],[47.6241,-2.74347],[47.62298,-2.74331],[47.62196,-2.74277],[47.62051,-2.74135],[47.61982,-2.74108],[47.61936,-2.74096],[47.61838,-2.74037],[47.61795,-2.73967],[47.61765,-2.73891],[47.61691,-2.73746],[47.61589,-2.73537],[47.61458,-2.73576],[47.6139,-2.73637],[47.61413,-2.73726],[47.61321,-2.73844],[47.61102,-2.74259],[47.60928,-2.74233],[47.60763,-2.74079],[47.60549,-2.74076],[47.60547,-2.739],[47.60573,-2.73716],[47.60639,-2.73549],[47.60633,-2.73237],[47.60561,-2.73091],[47.60411,-2.72934],[47.60327,-2.72925],[47.60193,-2.73027],[47.60194,-2.72929],[47.60198,-2.72816],[47.60263,-2.72711],[47.60321,-2.7262],[47.60337,-2.72494],[47.60334,-2.72344],[47.60392,-2.72232],[47.60242,-2.71762],[47.59981,-2.71853],[47.59751,-2.71751],[47.59549,-2.71707],[47.59302,-2.71793],[47.59082,-2.71981],[47.58969,-2.71992],[47.58828,-2.71785],[47.58645,-2.71818],[47.585,-2.71784],[47.58395,-2.71855],[47.58315,-2.71773],[47.58262,-2.71751],[47.58205,-2.71687],[47.5821,-2.7156],[47.57941,-2.71344],[47.5793,-2.71396],[47.57904,-2.7143],[47.57859,-2.71454],[47.57648,-2.71558],[47.57499,-2.71643],[47.57412,-2.71665],[47.57319,-2.71804],[47.57214,-2.71855],[47.57186,-2.71888],[47.57157,-2.71966],[47.5719,-2.72168],[47.57148,-2.72213],[47.57032,-2.7236],[47.56989,-2.72468],[47.56982,-2.72593],[47.56945,-2.72641],[47.56843,-2.72703],[47.56687,-2.7277],[47.5658,-2.72705],[47.56484,-2.72652],[47.56447,-2.72613],[47.56462,-2.72482],[47.56406,-2.72432],[47.5637,-2.72245],[47.56266,-2.72066],[47.55637,-2.72032],[47.55499,-2.7208],[47.5523,-2.72019],[47.54981,-2.72076],[47.54694,-2.7222],[47.54682,-2.72397],[47.54695,-2.72571],[47.54761,-2.72821],[47.54785,-2.72835],[47.54724,-2.72927],[47.5466,-2.72923],[47.54481,-2.7294],[47.54352,-2.72984],[47.54297,-2.73021],[47.54221,-2.73003],[47.5418,-2.7314],[47.5412,-2.73331],[47.54013,-2.73784],[47.54057,-2.73882],[47.54023,-2.73997],[47.53951,-2.7411],[47.54106,-2.74096],[47.54271,-2.74154],[47.54344,-2.74212],[47.54362,-2.74349],[47.5423,-2.74501],[47.54084,-2.74651],[47.54029,-2.74736],[47.53984,-2.74801],[47.53928,-2.74905],[47.53842,-2.75053],[47.53816,-2.75137],[47.53756,-2.75426],[47.53498,-2.75504],[47.53302,-2.75492],[47.53128,-2.759],[47.5313,-2.7606],[47.53028,-2.76349],[47.52885,-2.767],[47.52779,-2.76797],[47.52722,-2.76909],[47.52658,-2.77002],[47.52573,-2.76951]];
+const j2=[[47.52631,-2.76937],[47.52734,-2.76884],[47.53028,-2.76857],[47.53092,-2.76869],[47.53212,-2.76811],[47.53561,-2.77081],[47.53831,-2.77762],[47.54083,-2.78076],[47.54374,-2.7794],[47.54657,-2.77636],[47.54857,-2.77772],[47.54767,-2.77849],[47.546,-2.78042],[47.54452,-2.78262],[47.54575,-2.78656],[47.54824,-2.78973],[47.55022,-2.79169],[47.55006,-2.79332],[47.54922,-2.79464],[47.54889,-2.79591],[47.54789,-2.7983],[47.54693,-2.79977],[47.54478,-2.79836],[47.54342,-2.79586],[47.54186,-2.79437],[47.54166,-2.79709],[47.54066,-2.79868],[47.53803,-2.7982],[47.53714,-2.79966],[47.53988,-2.80087],[47.53981,-2.80301],[47.54097,-2.80475],[47.54036,-2.80571],[47.54149,-2.80793],[47.54476,-2.80645],[47.54664,-2.80667],[47.55083,-2.80671],[47.55214,-2.80724],[47.55359,-2.80559],[47.55629,-2.80692],[47.55494,-2.80908],[47.55477,-2.81019],[47.55329,-2.81078],[47.55344,-2.81421],[47.55502,-2.81618],[47.5557,-2.81902],[47.5566,-2.82165],[47.55683,-2.82409],[47.55561,-2.82526],[47.55372,-2.82421],[47.55159,-2.82385],[47.55111,-2.82146],[47.54987,-2.81996],[47.54855,-2.81935],[47.5479,-2.81839],[47.5457,-2.81946],[47.54348,-2.81918],[47.542,-2.81896],[47.54263,-2.82072],[47.54285,-2.8235],[47.54353,-2.82563],[47.54212,-2.82574],[47.54249,-2.8281],[47.54427,-2.83022],[47.54657,-2.83022],[47.54886,-2.82722],[47.54922,-2.82625],[47.54908,-2.82696],[47.54699,-2.82969],[47.54708,-2.83097],[47.54592,-2.83504],[47.54534,-2.83575],[47.54446,-2.83743],[47.54388,-2.84052],[47.54591,-2.84626],[47.54754,-2.84688],[47.54831,-2.84807],[47.54744,-2.84916],[47.54716,-2.85028],[47.54631,-2.85081],[47.54494,-2.85061],[47.54328,-2.85248],[47.54212,-2.85326],[47.54149,-2.85297],[47.54159,-2.85047],[47.5421,-2.84781],[47.54138,-2.84638],[47.5404,-2.8453],[47.53845,-2.8445],[47.53865,-2.84558],[47.53978,-2.84731],[47.53964,-2.84934],[47.53724,-2.8523],[47.537,-2.85439],[47.53855,-2.85431],[47.53937,-2.856],[47.5399,-2.85838],[47.541,-2.85943],[47.53992,-2.86159],[47.54158,-2.86276],[47.5421,-2.86199],[47.54412,-2.86018],[47.54512,-2.85825],[47.54539,-2.85788],[47.54725,-2.85859],[47.54934,-2.85841],[47.55062,-2.85943],[47.55144,-2.86062],[47.55258,-2.86319],[47.55179,-2.86554],[47.55161,-2.86741],[47.55141,-2.86861],[47.55293,-2.87025],[47.55409,-2.86953],[47.5558,-2.86974],[47.55698,-2.86833],[47.55883,-2.86771],[47.55778,-2.86903],[47.55666,-2.87028],[47.5559,-2.87177],[47.55515,-2.87327],[47.55426,-2.87534],[47.55528,-2.87845],[47.55724,-2.87842],[47.55819,-2.87795],[47.55957,-2.87728],[47.56095,-2.87667],[47.56213,-2.87756],[47.56392,-2.87834],[47.56407,-2.88029],[47.56321,-2.88111],[47.56223,-2.88336],[47.56139,-2.88403],[47.56012,-2.8828],[47.55741,-2.88295],[47.5569,-2.8841],[47.55756,-2.88683],[47.56078,-2.89016],[47.56111,-2.89104],[47.55917,-2.89142],[47.55738,-2.89205],[47.55361,-2.89494],[47.55669,-2.8963],[47.55934,-2.89692],[47.56107,-2.89722],[47.56301,-2.89742],[47.56258,-2.89982],[47.56097,-2.9011],[47.55924,-2.9027],[47.55971,-2.906],[47.56215,-2.90655],[47.56241,-2.90788],[47.56048,-2.90853],[47.55913,-2.90794],[47.55682,-2.90939],[47.55395,-2.91093],[47.55102,-2.90854],[47.54943,-2.90844],[47.54798,-2.91183],[47.54675,-2.91684],[47.54763,-2.91636]];
+const j3=[[47.56717,-2.93737],[47.56733,-2.93957],[47.56778,-2.94177],[47.5692,-2.94348],[47.56954,-2.94438],[47.5706,-2.94548],[47.57289,-2.94608],[47.57428,-2.94525],[47.57529,-2.94565],[47.57606,-2.94577],[47.57735,-2.94666],[47.57842,-2.9473],[47.57928,-2.94828],[47.57928,-2.94956],[47.5791,-2.95153],[47.57936,-2.95492],[47.57977,-2.95664],[47.58049,-2.95752],[47.58075,-2.95899],[47.58203,-2.96026],[47.58286,-2.96093],[47.58427,-2.96262],[47.58576,-2.96302],[47.58792,-2.96456],[47.59116,-2.96608],[47.5933,-2.96785],[47.5993,-2.97707],[47.60283,-2.98078],[47.60537,-2.98368],[47.60742,-2.98682],[47.60905,-2.99027],[47.61153,-2.9951],[47.61234,-2.99759],[47.61456,-3.00121],[47.61662,-3.00087],[47.61811,-3.00111],[47.61947,-3.00166],[47.62319,-3.0008],[47.62584,-2.99979],[47.62875,-2.99919],[47.62884,-2.99947],[47.6302,-3.0013],[47.63134,-3.00348],[47.63245,-3.00507],[47.63735,-3.01035],[47.6419,-3.01014],[47.64514,-3.01027],[47.64858,-3.00871],[47.65168,-3.00399],[47.65552,-2.99923],[47.65786,-2.9932],[47.66002,-2.99357],[47.6613,-2.99259],[47.6641,-2.9894],[47.66454,-2.98766],[47.66563,-2.98556],[47.66637,-2.98301],[47.66642,-2.98199],[47.66658,-2.97972],[47.66494,-2.9786],[47.66229,-2.97675],[47.65673,-2.97497],[47.65482,-2.97311],[47.65299,-2.97102],[47.65184,-2.97043],[47.64977,-2.96763],[47.64825,-2.96616],[47.6454,-2.96366],[47.6422,-2.966],[47.63937,-2.96817],[47.63921,-2.96603],[47.63904,-2.96348],[47.63879,-2.96135],[47.63878,-2.95982],[47.63877,-2.95797],[47.63977,-2.95539],[47.64091,-2.953],[47.64061,-2.95116],[47.63849,-2.95474],[47.63608,-2.95755],[47.63555,-2.95595],[47.63364,-2.95811],[47.63227,-2.95883],[47.63202,-2.95842],[47.63265,-2.95746],[47.63126,-2.95746],[47.63067,-2.95827],[47.62944,-2.95884],[47.62774,-2.95847],[47.62719,-2.95735],[47.62643,-2.9545],[47.62685,-2.95266],[47.62738,-2.95111],[47.62756,-2.9485],[47.62941,-2.94702],[47.62891,-2.94587],[47.62883,-2.94414],[47.62886,-2.94087],[47.62698,-2.93797],[47.62575,-2.93612],[47.62538,-2.93451],[47.62503,-2.93649],[47.62603,-2.94152],[47.62529,-2.94379],[47.62313,-2.94662],[47.6205,-2.94896],[47.61825,-2.94856],[47.61472,-2.94813],[47.61385,-2.9484],[47.61326,-2.94739],[47.61142,-2.94698],[47.61108,-2.93926],[47.61263,-2.93596],[47.61056,-2.92914],[47.60787,-2.92595],[47.6039,-2.9291],[47.6024,-2.92865],[47.6011,-2.92669],[47.59887,-2.92643],[47.59792,-2.92677],[47.59575,-2.92657],[47.59463,-2.92644],[47.5942,-2.92591],[47.5937,-2.9266],[47.59213,-2.92596],[47.59067,-2.92667],[47.5888,-2.92626],[47.58643,-2.92561],[47.5856,-2.92418],[47.58499,-2.92162],[47.58315,-2.91751],[47.58242,-2.91761],[47.58334,-2.91759],[47.58665,-2.91737],[47.58692,-2.91531],[47.58798,-2.91498],[47.58908,-2.91489],[47.58993,-2.91489],[47.59073,-2.9147],[47.59153,-2.91433],[47.59186,-2.9138],[47.59233,-2.91101],[47.59135,-2.90718],[47.58939,-2.90463],[47.58849,-2.90419],[47.5875,-2.90353],[47.58669,-2.90405],[47.58559,-2.90447],[47.58445,-2.90586],[47.58407,-2.90833],[47.5834,-2.9077],[47.58335,-2.90675],[47.58208,-2.90472],[47.58261,-2.90305],[47.58304,-2.90245],[47.58421,-2.90131],[47.58495,-2.90005],[47.58572,-2.89843],[47.58567,-2.89781]];
+const j4=[[47.58693,-2.89605],[47.58782,-2.89525],[47.58826,-2.89431],[47.58849,-2.89305],[47.58861,-2.89038],[47.58971,-2.89031],[47.59037,-2.88997],[47.59089,-2.89033],[47.59144,-2.89146],[47.59253,-2.8914],[47.59476,-2.89048],[47.5956,-2.8906],[47.59552,-2.89241],[47.59635,-2.89283],[47.59724,-2.89407],[47.59782,-2.89504],[47.59824,-2.8959],[47.59916,-2.89476],[47.60055,-2.89775],[47.60368,-2.89695],[47.60554,-2.89341],[47.60346,-2.88851],[47.60415,-2.88744],[47.60366,-2.87998],[47.60307,-2.8777],[47.60187,-2.8753],[47.6007,-2.87376],[47.59933,-2.87514],[47.59872,-2.87414],[47.59873,-2.87275],[47.59885,-2.87086],[47.59891,-2.86985],[47.5984,-2.86793],[47.59759,-2.86574],[47.59719,-2.86398],[47.59767,-2.86279],[47.59927,-2.86222],[47.6003,-2.8612],[47.60124,-2.86152],[47.60233,-2.8615],[47.60276,-2.86075],[47.60306,-2.8608],[47.60372,-2.86128],[47.60348,-2.86204],[47.60311,-2.86337],[47.60443,-2.86599],[47.60587,-2.86824],[47.6082,-2.86777],[47.60872,-2.86672],[47.60932,-2.86591],[47.61029,-2.86465],[47.61151,-2.86265],[47.61187,-2.8614],[47.61306,-2.85941],[47.61363,-2.85794],[47.61471,-2.85658],[47.61578,-2.85777],[47.61652,-2.85854],[47.61836,-2.85943],[47.61828,-2.86189],[47.61795,-2.86362],[47.61694,-2.86524],[47.6164,-2.86692],[47.61769,-2.86812],[47.61906,-2.87027],[47.62061,-2.87047],[47.62089,-2.86959],[47.61935,-2.86946],[47.61847,-2.86714],[47.6185,-2.86582],[47.61946,-2.86526],[47.61996,-2.86454],[47.6212,-2.86438],[47.62246,-2.86207],[47.62318,-2.85961],[47.6237,-2.85955],[47.62384,-2.85826],[47.62237,-2.85777],[47.62218,-2.85688],[47.62237,-2.85601],[47.6218,-2.85606],[47.62156,-2.85539],[47.62183,-2.85418],[47.62154,-2.85289],[47.62083,-2.85435],[47.61992,-2.8549],[47.61952,-2.85499],[47.61921,-2.85401],[47.61928,-2.85322],[47.61943,-2.85238],[47.62049,-2.85105],[47.62094,-2.8487],[47.61853,-2.84693],[47.61798,-2.84569],[47.61827,-2.844],[47.61769,-2.84291],[47.61745,-2.84153],[47.61697,-2.83928],[47.61749,-2.83777],[47.61796,-2.83687],[47.61838,-2.83559],[47.61932,-2.83454],[47.62006,-2.83375],[47.62044,-2.83312],[47.62009,-2.83188],[47.61956,-2.83074],[47.61928,-2.82941],[47.61848,-2.82811],[47.61881,-2.82623],[47.61886,-2.82515],[47.61808,-2.82329],[47.61855,-2.82196],[47.6194,-2.82159],[47.62006,-2.81939],[47.62128,-2.81652],[47.62217,-2.81291],[47.62252,-2.81198],[47.62241,-2.81088],[47.62205,-2.80938],[47.62167,-2.80825],[47.62144,-2.80741],[47.62142,-2.80628],[47.6208,-2.8046],[47.61852,-2.80141],[47.61809,-2.80079],[47.61841,-2.79825],[47.61945,-2.79812],[47.62135,-2.80168],[47.6241,-2.79943],[47.62175,-2.79443],[47.62081,-2.79201],[47.62105,-2.7914],[47.62396,-2.78977],[47.62303,-2.7881],[47.62182,-2.7861],[47.6243,-2.7812],[47.62588,-2.78233],[47.62629,-2.78085],[47.62643,-2.77992],[47.62706,-2.77978],[47.62914,-2.78236],[47.63157,-2.78786],[47.63192,-2.78844],[47.63394,-2.79081],[47.63483,-2.79259],[47.63968,-2.79673],[47.64156,-2.79688],[47.64296,-2.79501],[47.64382,-2.79492],[47.64762,-2.79837],[47.64902,-2.79839],[47.64904,-2.79697],[47.64936,-2.79633],[47.65068,-2.79142],[47.65162,-2.7884],[47.65232,-2.78612],[47.6521,-2.78504],[47.65252,-2.78443],[47.65242,-2.78396],[47.65285,-2.78328],[47.65521,-2.77411],[47.65893,-2.77191],[47.65906,-2.76509],[47.65902,-2.76379],[47.65916,-2.76313],[47.66065,-2.76114],[47.66076,-2.76134],[47.6608,-2.76101]];
+
+const tracks=[j1,j2,j3,j4];
+const colors=['#1D9E75','#378ADD','#7F77DD','#BA7517'];
+
+const MARKERS=[
+  {lat:j1[0][0],lon:j1[0][1],col:'#1D9E75',title:'Départ J1',sub:'Vannes · 30 mai · 11h00'},
+  {lat:j4[j4.length-1][0],lon:j4[j4.length-1][1],col:'#BA7517',title:'Arrivée J4',sub:'Vannes · 2 juin · ~14h19'},
+  {lat:47.534,lon:-2.7805,col:'#c0392b',title:"Amarré Chambres d'hôtes",sub:'Nuit 1 · Sarzeau · ★ 4.9'},
+  {lat:47.5488,lon:-2.9051,col:'#c0392b',title:'Hôtel Glann Ar Mor',sub:'Nuit 2 · Port-Navalo · ★ 4.5'},
+  {lat:47.5854,lon:-2.8951,col:'#c0392b',title:'Hôtel le Parc Fétan',sub:'Nuit 3 · Larmor-Baden · ★ 4.7'},
+  {lat:47.5488,lon:-2.9051,col:'#2980b9',title:'Embarcadère Port-Navalo',sub:'Bac → Locmariaquer · 09h00\nLe Passeur des Îles',bac:true},
+  {lat:47.5878,lon:-2.7328,col:'#e67e22',title:'Petit Passeur · J1',sub:'Montsarrac ↔ Saint-Armel\nÀ la demande · agiter le drapeau 🚩',bac:true},
+];
+
+const wrap=document.getElementById('mapwrap');
+const canvas=document.getElementById('maptiles');
+const svg=document.getElementById('mapsvg');
+const popup=document.getElementById('popup');
+const ptitle=document.getElementById('ptitle');
+const psub=document.getElementById('psub');
+const ctx=canvas.getContext('2d');
+
+let Z=10;
+let cx=0,cy=0;
+let dragging=false,lastX=0,lastY=0;
+let W=0,H=0;
+const tileCache={};
+
+function resize(){
+  W=wrap.clientWidth; H=wrap.clientHeight;
+  canvas.width=W; canvas.height=H;
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  render();
+}
+
+function llToXY(lat,lon){
+  const px=lon2x(lon,Z), py=lat2y(lat,Z);
+  return [px-cx+W/2, py-cy+H/2];
+}
+
+function loadTile(tx,ty,z){
+  const key=`${z}/${tx}/${ty}`;
+  if(tileCache[key]) return tileCache[key];
+  const img=new Image();
+  img.crossOrigin='anonymous';
+  const servers=['a','b','c'];
+  img.src=`https://${servers[(tx+ty)%3]}.tile.openstreetmap.org/${z}/${tx}/${ty}.png`;
+  img.onload=()=>{tileCache[key]=img; render();};
+  tileCache[key]=null;
+  return null;
+}
+
+function renderTiles(){
+  const ts=256;
+  const tx0=Math.floor((cx-W/2)/ts), ty0=Math.floor((cy-H/2)/ts);
+  const tx1=Math.ceil((cx+W/2)/ts), ty1=Math.ceil((cy+H/2)/ts);
+  const max=Math.pow(2,Z)-1;
+  ctx.clearRect(0,0,W,H);
+  for(let tx=tx0;tx<=tx1;tx++){
+    for(let ty=ty0;ty<=ty1;ty++){
+      if(ty<0||ty>max) continue;
+      const ntx=((tx%Math.pow(2,Z))+Math.pow(2,Z))%Math.pow(2,Z);
+      const img=loadTile(ntx,ty,Z);
+      if(img){
+        const sx=tx*ts-cx+W/2, sy=ty*ts-cy+H/2;
+        ctx.drawImage(img,sx,sy,ts,ts);
+      }
+    }
+  }
+}
+
+function renderSVG(){
+  let html='';
+  tracks.forEach((pts,i)=>{
+    const d=pts.map((p,j)=>{
+      const [x,y]=llToXY(p[0],p[1]);
+      return (j===0?'M':'L')+x.toFixed(1)+' '+y.toFixed(1);
+    }).join(' ');
+    html+=`<path d="${d}" stroke="${colors[i]}" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
+  });
+  MARKERS.forEach((m,i)=>{
+    const [x,y]=llToXY(m.lat,m.lon);
+    if(m.bac){
+      html+=`<g data-i="${i}" style="cursor:pointer">
+        <rect x="${x-28}" y="${y-10}" width="56" height="20" rx="4" fill="#2980b9" stroke="white" stroke-width="1.5"/>
+        <text x="${x}" y="${y+4}" text-anchor="middle" font-size="10" fill="white" font-weight="600">⛵ Bac 9h</text>
+      </g>`;
+    } else {
+      html+=`<g data-i="${i}" style="cursor:pointer">
+        <circle cx="${x}" cy="${y}" r="8" fill="${m.col}" stroke="white" stroke-width="2" filter="drop-shadow(0 1px 3px rgba(0,0,0,.4))"/>
+      </g>`;
+    }
+  });
+  svg.innerHTML=html;
+  svg.querySelectorAll('[data-i]').forEach(el=>{
+    el.addEventListener('click',e=>{
+      const i=parseInt(el.getAttribute('data-i'));
+      showPopup(MARKERS[i],e);
+      e.stopPropagation();
+    });
+    el.addEventListener('touchend',e=>{
+      if(!didDrag){
+        const i=parseInt(el.getAttribute('data-i'));
+        showPopup(MARKERS[i],e.changedTouches[0]);
+        e.stopPropagation();
+      }
+    });
+  });
+}
+
+function render(){renderTiles();renderSVG();}
+
+function showPopup(m,e){
+  ptitle.textContent=m.title;
+  psub.innerHTML=m.sub.replace('\n','<br>');
+  popup.style.display='block';
+  const px=parseFloat(e.clientX||e.pageX)||W/2;
+  const py=parseFloat(e.clientY||e.pageY)||H/2;
+  const rect=wrap.getBoundingClientRect();
+  let left=px-rect.left+10, top=py-rect.top-60;
+  if(left+210>W) left=px-rect.left-220;
+  if(top<0) top=py-rect.top+15;
+  popup.style.left=left+'px'; popup.style.top=top+'px';
+}
+
+wrap.addEventListener('click',()=>{popup.style.display='none';});
+
+let didDrag=false;
+wrap.addEventListener('mousedown',e=>{dragging=true;didDrag=false;lastX=e.clientX;lastY=e.clientY;wrap.classList.add('grabbing');});
+window.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;
+  if(Math.abs(dx)+Math.abs(dy)>3) didDrag=true;
+  cx-=dx;cy-=dy;lastX=e.clientX;lastY=e.clientY;render();
+});
+window.addEventListener('mouseup',()=>{dragging=false;wrap.classList.remove('grabbing');});
+
+let t0=null,tc0=null,td0=null;
+wrap.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){t0={x:e.touches[0].clientX,y:e.touches[0].clientY};tc0={x:cx,y:cy};didDrag=false;}
+  if(e.touches.length===2){
+    td0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    tc0={x:cx,y:cy};t0=null;
+  }
+},{passive:true});
+wrap.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&t0){
+    const dx=e.touches[0].clientX-t0.x,dy=e.touches[0].clientY-t0.y;
+    if(Math.abs(dx)+Math.abs(dy)>4) didDrag=true;
+    cx=tc0.x-dx;cy=tc0.y-dy;render();
+  }
+  if(e.touches.length===2&&td0){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    const mid=[(e.touches[0].clientX+e.touches[1].clientX)/2,(e.touches[0].clientY+e.touches[1].clientY)/2];
+    const ratio=d/td0;
+    const newZ=Math.max(8,Math.min(16,Math.round(Z+Math.log2(ratio))));
+    if(newZ!==Z){
+      const scale=Math.pow(2,newZ-Z);
+      cx=(cx-W/2)*scale+W/2;cy=(cy-H/2)*scale+H/2;
+      Z=newZ;td0=d;tc0={x:cx,y:cy};
+    }
+    render();
+  }
+},{passive:false});
+
+wrap.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const dz=e.deltaY<0?1:-1;
+  const newZ=Math.max(8,Math.min(16,Z+dz));
+  if(newZ!==Z){
+    const mx=e.clientX-wrap.getBoundingClientRect().left;
+    const my=e.clientY-wrap.getBoundingClientRect().top;
+    const scale=Math.pow(2,newZ-Z);
+    cx=(cx-mx)*scale+mx;cy=(cy-my)*scale+my;
+    Z=newZ;render();
+  }
+},{passive:false});
+
+function fitAll(){
+  const all=[...j1,...j2,...j3,...j4];
+  const lats=all.map(p=>p[0]),lons=all.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats);
+  const minLon=Math.min(...lons),maxLon=Math.max(...lons);
+  Z=10;
+  cx=(lon2x(minLon,Z)+lon2x(maxLon,Z))/2;
+  cy=(lat2y(minLat,Z)+lat2y(maxLat,Z))/2;
+}
+
+window.foc=function(i){
+  document.querySelectorAll('.ec').forEach((c,j)=>c.classList.toggle('on',i===j));
+  popup.style.display='none';
+  const pts=tracks[i];
+  const lats=pts.map(p=>p[0]),lons=pts.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats);
+  const minLon=Math.min(...lons),maxLon=Math.max(...lons);
+  let z=10;
+  for(z=14;z>=8;z--){
+    const x0=lon2x(minLon,z),x1=lon2x(maxLon,z);
+    const y0=lat2y(maxLat,z),y1=lat2y(minLat,z);
+    if(x1-x0<W*0.85&&y1-y0<H*0.85) break;
+  }
+  Z=z;
+  cx=(lon2x(minLon,Z)+lon2x(maxLon,Z))/2;
+  cy=(lat2y(minLat,Z)+lat2y(maxLat,Z))/2;
+  render();
+};
+
+window.fly=function(lat,lon,title,sub){
+  popup.style.display='none';
+  Z=14;
+  cx=lon2x(lon,Z); cy=lat2y(lat,Z);
+  render();
+  setTimeout(()=>{
+    const [x,y]=llToXY(lat,lon);
+    ptitle.textContent=title; psub.textContent=sub;
+    popup.style.display='block';
+    popup.style.left=(x+10)+'px'; popup.style.top=(y-60)+'px';
+  },50);
+};
+
+window.stab=function(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p-'+name).classList.add('on');
+};
+
+window.addEventListener('resize',()=>{resize();});
+fitAll();
+resize();
+</script>
+</body>
+</html>
